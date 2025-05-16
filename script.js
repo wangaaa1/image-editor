@@ -1,4 +1,4 @@
-// ✅ 修复后的 script.js 文件（含手机 touch 支持）
+// ✅ 修复后的 script.js 文件（含桌面 & 手机兼容 touch 操作优化）
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -8,9 +8,6 @@ let overlayData = null;
 let historyStack = [];
 let isErasing = false;
 let isTransforming = false;
-
-let currentHandle = null;
-const handleSize = 10;
 
 let overlayTransform = {
   x: 0,
@@ -22,9 +19,9 @@ let overlayTransform = {
   offsetY: 0
 };
 
+let lastTouch = null;
 let lastTouchDistance = null;
 let lastTouchAngle = null;
-let lastMidpoint = null;
 
 const backgroundInput = document.getElementById("backgroundInput");
 const overlayInput = document.getElementById("overlayInput");
@@ -74,66 +71,42 @@ undoButton.addEventListener("click", () => {
   }
 });
 
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener("pointerdown", (e) => {
   if (!isTransforming) return;
-  overlayTransform.dragging = true;
-  overlayTransform.offsetX = e.clientX - overlayTransform.x;
-  overlayTransform.offsetY = e.clientY - overlayTransform.y;
+  lastTouch = [e.clientX, e.clientY];
+  canvas.setPointerCapture(e.pointerId);
 });
 
-canvas.addEventListener("mousemove", (e) => {
-  if (!isTransforming || !overlayTransform.dragging) return;
-  overlayTransform.x = e.clientX - overlayTransform.offsetX;
-  overlayTransform.y = e.clientY - overlayTransform.offsetY;
+canvas.addEventListener("pointermove", (e) => {
+  if (!isTransforming || !lastTouch) return;
+  const [lastX, lastY] = lastTouch;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+
+  overlayTransform.x += dx;
+  overlayTransform.y += dy;
+
+  lastTouch = [e.clientX, e.clientY];
   drawCanvas();
 });
 
-canvas.addEventListener("mouseup", () => {
-  overlayTransform.dragging = false;
+canvas.addEventListener("pointerup", () => {
+  lastTouch = null;
 });
 
-canvas.addEventListener("mouseleave", () => {
-  overlayTransform.dragging = false;
-});
-
-canvas.addEventListener("click", (e) => {
-  if (!isErasing || !overlayData) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
-  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
-  const index = (y * canvas.width + x) * 4;
-  const targetColor = overlayData.data.slice(index, index + 3);
-  saveHistory();
-  eraseSimilarColor(targetColor, x, y);
-  drawCanvas();
-});
-
-// ✅ 手机双指缩放旋转 + 单指移动
 canvas.addEventListener("touchstart", (e) => {
   if (!isTransforming) return;
-  if (e.touches.length === 1) {
-    overlayTransform.dragging = true;
-    overlayTransform.offsetX = e.touches[0].clientX - overlayTransform.x;
-    overlayTransform.offsetY = e.touches[0].clientY - overlayTransform.y;
-  } else if (e.touches.length === 2) {
+  if (e.touches.length === 2) {
     const [p1, p2] = e.touches;
     lastTouchDistance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
     lastTouchAngle = Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX);
-    lastMidpoint = {
-      x: (p1.clientX + p2.clientX) / 2,
-      y: (p1.clientY + p2.clientY) / 2
-    };
   }
 });
 
 canvas.addEventListener("touchmove", (e) => {
   if (!isTransforming) return;
-  e.preventDefault();
-  if (e.touches.length === 1 && overlayTransform.dragging) {
-    overlayTransform.x = e.touches[0].clientX - overlayTransform.offsetX;
-    overlayTransform.y = e.touches[0].clientY - overlayTransform.offsetY;
-    drawCanvas();
-  } else if (e.touches.length === 2) {
+  if (e.touches.length === 2) {
+    e.preventDefault();
     const [p1, p2] = e.touches;
     const newDistance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
     const newAngle = Math.atan2(p2.clientY - p1.clientY, p2.clientX - p1.clientX);
@@ -150,9 +123,20 @@ canvas.addEventListener("touchmove", (e) => {
 }, { passive: false });
 
 canvas.addEventListener("touchend", () => {
-  overlayTransform.dragging = false;
   lastTouchDistance = null;
   lastTouchAngle = null;
+});
+
+canvas.addEventListener("click", (e) => {
+  if (!isErasing || !overlayData) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+  const index = (y * canvas.width + x) * 4;
+  const targetColor = overlayData.data.slice(index, index + 3);
+  saveHistory();
+  eraseSimilarColor(targetColor, x, y);
+  drawCanvas();
 });
 
 function loadImage(file) {
@@ -186,9 +170,6 @@ function drawCanvas() {
     ctx.scale(overlayTransform.scale, overlayTransform.scale);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
     ctx.drawImage(tempCanvas, 0, 0);
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
   }
 }
