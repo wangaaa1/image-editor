@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: sans-serif;
@@ -6,11 +10,12 @@ body {
 
 .container {
   display: flex;
+  flex-direction: row;
   height: 100vh;
 }
 
 .sidebar {
-  width: 200px;
+  width: 240px;
   padding: 20px;
   background: #ddd;
   display: flex;
@@ -26,7 +31,8 @@ body {
 }
 
 .upload-box img {
-  width: 100%;
+  max-width: 100%;
+  height: auto;
   margin-top: 10px;
 }
 
@@ -37,22 +43,52 @@ body {
   align-items: center;
   justify-content: center;
   background: white;
+  overflow: auto;
+  padding: 10px;
 }
 
 canvas {
+  max-width: 100%;
+  height: auto;
   border: 1px solid #ccc;
 }
 
 .buttons {
   margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
 button {
-  margin: 0 10px;
   padding: 10px 20px;
   background: #00a2d4;
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
+}
+
+/* ✅ 手机端样式 */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .upload-box {
+    width: 45%;
+  }
+
+  .editor {
+    padding: 10px;
+  }
 }
