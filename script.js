@@ -1,3 +1,4 @@
+// ✅ 修复后的 script.js 文件
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -7,7 +8,6 @@ let overlayData = null;
 let historyStack = [];
 let isErasing = false;
 let isTransforming = false;
-
 
 let currentHandle = null;
 const handleSize = 10;
@@ -70,18 +70,14 @@ undoButton.addEventListener("click", () => {
   }
 });
 
-
 canvas.addEventListener("mousedown", (e) => {
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
   const mouseY = e.clientY - rect.top;
 
   if (isTransforming) {
-    // 计算中心位置和旋转后的坐标
     const centerX = canvas.width / 2 + overlayTransform.x;
     const centerY = canvas.height / 2 + overlayTransform.y;
-
-    // 反向变换鼠标位置回旋转前的坐标系
     const dx = mouseX - centerX;
     const dy = mouseY - centerY;
     const angle = -overlayTransform.rotation;
@@ -92,7 +88,7 @@ canvas.addEventListener("mousedown", (e) => {
       tl: [-canvas.width / 2, -canvas.height / 2],
       tr: [canvas.width / 2, -canvas.height / 2],
       br: [canvas.width / 2, canvas.height / 2],
-      bl: [-canvas.width / 2, canvas.height / 2],
+      bl: [-canvas.width / 2, canvas.height / 2]
     };
 
     for (const [key, [hx, hy]] of Object.entries(handles)) {
@@ -109,14 +105,6 @@ canvas.addEventListener("mousedown", (e) => {
   }
 });
 
-  if (!isTransforming) return;
-  const rect = canvas.getBoundingClientRect();
-  overlayTransform.dragging = true;
-  overlayTransform.offsetX = e.clientX - overlayTransform.x;
-  overlayTransform.offsetY = e.clientY - overlayTransform.y;
-});
-
-
 canvas.addEventListener("mousemove", (e) => {
   if (!isTransforming) return;
   const rect = canvas.getBoundingClientRect();
@@ -130,11 +118,9 @@ canvas.addEventListener("mousemove", (e) => {
     const dy = mouseY - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // 缩放逻辑
     overlayTransform.scale = dist / (Math.sqrt(2) * canvas.width / 2);
     overlayTransform.scale = Math.max(0.1, overlayTransform.scale);
 
-    // 如果按住 Ctrl，旋转而非缩放
     if (e.ctrlKey) {
       overlayTransform.rotation = Math.atan2(dy, dx);
     }
@@ -150,19 +136,9 @@ canvas.addEventListener("mousemove", (e) => {
   }
 });
 
-  if (!isTransforming || !overlayTransform.dragging) return;
-  overlayTransform.x = e.clientX - overlayTransform.offsetX;
-  overlayTransform.y = e.clientY - overlayTransform.offsetY;
-  drawCanvas();
-});
-
-
 canvas.addEventListener("mouseup", () => {
   overlayTransform.dragging = false;
   currentHandle = null;
-});
-
-  overlayTransform.dragging = false;
 });
 
 canvas.addEventListener("mouseleave", () => {
@@ -212,27 +188,15 @@ function drawCanvas() {
     ctx.scale(overlayTransform.scale, overlayTransform.scale);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
     ctx.drawImage(tempCanvas, 0, 0);
-    ctx.restore();
-
-    // Draw bounding box (可视化编辑框)
-    const boxWidth = canvas.width * overlayTransform.scale;
-    const boxHeight = canvas.height * overlayTransform.scale;
-    const centerX = canvas.width / 2 + overlayTransform.x;
-    const centerY = canvas.height / 2 + overlayTransform.y;
-
-    ctx.translate(centerX, centerY);
-    ctx.rotate(overlayTransform.rotation);
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
-    ctx.strokeRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    // 锚点尺寸
-    const handleSize = 10;
     const handles = {
-      tl: [-canvas.width / 2, -canvas.height / 2],
-      tr: [canvas.width / 2, -canvas.height / 2],
-      br: [canvas.width / 2, canvas.height / 2],
-      bl: [-canvas.width / 2, canvas.height / 2],
+      tl: [0, 0],
+      tr: [canvas.width, 0],
+      br: [canvas.width, canvas.height],
+      bl: [0, canvas.height]
     };
 
     for (const [key, [hx, hy]] of Object.entries(handles)) {
@@ -242,24 +206,6 @@ function drawCanvas() {
       ctx.fill();
     }
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    ctx.beginPath();
-    ctx.fillStyle = "blue";
-    ctx.arc(canvas.width / 2, canvas.height / 2, 8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 旋转锚点（右上角）
-    ctx.beginPath();
-    ctx.fillStyle = "green";
-    ctx.arc(canvas.width / 2, -canvas.height / 2, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    ctx.save();
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(overlayTransform.x, overlayTransform.y, canvas.width, canvas.height);
     ctx.restore();
   }
 }
