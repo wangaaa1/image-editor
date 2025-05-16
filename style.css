@@ -118,3 +118,6 @@ button:hover {
     padding: 10px;
   }
 }
+button.active {
+  background: #28a745; /* 绿色 */
+}
