@@ -6,32 +6,37 @@ let overlayImage = null;
 let overlayData = null;
 let historyStack = [];
 let isErasing = false;
+let isTransforming = false;
+
+let overlayTransform = {
+  x: 0,
+  y: 0,
+  scale: 1,
+  rotation: 0,
+  dragging: false,
+  offsetX: 0,
+  offsetY: 0
+};
 
 const backgroundInput = document.getElementById("backgroundInput");
 const overlayInput = document.getElementById("overlayInput");
 const eraseButton = document.getElementById("eraseButton");
 const undoButton = document.getElementById("undoButton");
+const transformButton = document.getElementById("transformButton");
 
-// 上传背景图
 backgroundInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const img = await loadImage(file);
   backgroundImage = img;
   document.getElementById("backgroundThumb").src = img.src;
-
-  // 设置 canvas 尺寸为图片原始尺寸
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
-
-  // 清除之前的 overlayData（防止旧图大小不一致）
   overlayData = null;
   overlayImage = null;
   document.getElementById("overlayThumb").src = "";
-
   drawCanvas();
 });
 
-// 上传文字图
 overlayInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const img = await loadImage(file);
@@ -40,29 +45,20 @@ overlayInput.addEventListener("change", async (e) => {
   drawCanvas();
 });
 
-// 点击画布进行颜色擦除（连通区域）
-canvas.addEventListener("click", (e) => {
-  if (!isErasing || !overlayData) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
-  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
-
-  const index = (y * canvas.width + x) * 4;
-  const targetColor = overlayData.data.slice(index, index + 3);
-
-  saveHistory();
-  eraseSimilarColor(targetColor, x, y);
-  drawCanvas();
-});
-
-// 切换“颜色擦除”按钮状态
 eraseButton.addEventListener("click", () => {
   isErasing = !isErasing;
+  isTransforming = false;
   eraseButton.style.background = isErasing ? "#0077aa" : "#00a2d4";
+  transformButton.style.background = "#00a2d4";
 });
 
-// 撤销上一步
+transformButton.addEventListener("click", () => {
+  isTransforming = !isTransforming;
+  isErasing = false;
+  transformButton.style.background = isTransforming ? "#0077aa" : "#00a2d4";
+  eraseButton.style.background = "#00a2d4";
+});
+
 undoButton.addEventListener("click", () => {
   if (historyStack.length > 0) {
     overlayData = historyStack.pop();
@@ -70,7 +66,41 @@ undoButton.addEventListener("click", () => {
   }
 });
 
-// 加载图像
+canvas.addEventListener("mousedown", (e) => {
+  if (!isTransforming) return;
+  const rect = canvas.getBoundingClientRect();
+  overlayTransform.dragging = true;
+  overlayTransform.offsetX = e.clientX - overlayTransform.x;
+  overlayTransform.offsetY = e.clientY - overlayTransform.y;
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!isTransforming || !overlayTransform.dragging) return;
+  overlayTransform.x = e.clientX - overlayTransform.offsetX;
+  overlayTransform.y = e.clientY - overlayTransform.offsetY;
+  drawCanvas();
+});
+
+canvas.addEventListener("mouseup", () => {
+  overlayTransform.dragging = false;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  overlayTransform.dragging = false;
+});
+
+canvas.addEventListener("click", (e) => {
+  if (!isErasing || !overlayData) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+  const index = (y * canvas.width + x) * 4;
+  const targetColor = overlayData.data.slice(index, index + 3);
+  saveHistory();
+  eraseSimilarColor(targetColor, x, y);
+  drawCanvas();
+});
+
 function loadImage(file) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -79,39 +109,45 @@ function loadImage(file) {
   });
 }
 
-// 绘制画布：先画背景，再叠加透明的文字图层
 function drawCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (backgroundImage) ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
 
-  // 画背景图
-  if (backgroundImage) {
-    ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
-  }
-
-  // 初次上传文字图时初始化 overlayData
   if (overlayImage && !overlayData) {
     ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
     overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 
-  // 如果有文字图数据，用透明图层叠加上去
   if (overlayData) {
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const tempCtx = tempCanvas.getContext("2d");
     tempCtx.putImageData(overlayData, 0, 0);
+
+    ctx.save();
+    ctx.translate(overlayTransform.x, overlayTransform.y);
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(overlayTransform.rotation);
+    ctx.scale(overlayTransform.scale, overlayTransform.scale);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
     ctx.drawImage(tempCanvas, 0, 0);
+    ctx.restore();
+
+    // Draw bounding box (可视化编辑框)
+    ctx.save();
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(overlayTransform.x, overlayTransform.y, canvas.width, canvas.height);
+    ctx.restore();
   }
 }
 
-// 用泛洪算法擦除点击位置连通区域
 function eraseSimilarColor(targetRGB, startX, startY) {
   const width = canvas.width;
   const height = canvas.height;
   const data = overlayData.data;
   const tolerance = 20;
-
   const visited = new Set();
   const stack = [[startX, startY]];
 
@@ -123,11 +159,7 @@ function eraseSimilarColor(targetRGB, startX, startY) {
     const r = data[index];
     const g = data[index + 1];
     const b = data[index + 2];
-    const diff = Math.sqrt(
-      (r - targetRGB[0]) ** 2 +
-      (g - targetRGB[1]) ** 2 +
-      (b - targetRGB[2]) ** 2
-    );
+    const diff = Math.sqrt((r - targetRGB[0]) ** 2 + (g - targetRGB[1]) ** 2 + (b - targetRGB[2]) ** 2);
     return diff <= tolerance;
   }
 
@@ -138,19 +170,13 @@ function eraseSimilarColor(targetRGB, startX, startY) {
 
     const idx = getIndex(x, y);
     if (colorMatch(idx)) {
-      data[idx + 3] = 0; // 设置 alpha = 0（透明）
+      data[idx + 3] = 0;
       visited.add(key);
-
-      // 加入相邻像素
-      stack.push([x + 1, y]);
-      stack.push([x - 1, y]);
-      stack.push([x, y + 1]);
-      stack.push([x, y - 1]);
+      stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
     }
   }
 }
 
-// 存储历史记录（用于撤销）
 function saveHistory() {
   if (overlayData) {
     const copy = new ImageData(
