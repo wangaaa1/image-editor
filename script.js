@@ -18,6 +18,16 @@ backgroundInput.addEventListener("change", async (e) => {
   const img = await loadImage(file);
   backgroundImage = img;
   document.getElementById("backgroundThumb").src = img.src;
+
+  // 设置 canvas 尺寸为图片原始尺寸
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+
+  // 清除之前的 overlayData（防止旧图大小不一致）
+  overlayData = null;
+  overlayImage = null;
+  document.getElementById("overlayThumb").src = "";
+
   drawCanvas();
 });
 
