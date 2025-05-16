@@ -165,14 +165,11 @@ function saveHistory() {
 const downloadButton = document.getElementById("downloadButton");
 
 downloadButton.addEventListener("click", () => {
-  canvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "合成图.png";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // 清理
-  }, "image/png");
+  const dataURL = canvas.toDataURL("image/png");
+  document.getElementById("previewImage").src = dataURL;
+  document.getElementById("previewBox").style.display = "flex";
+  alert("⏬ 请长按图像，选择“保存到相册”");
+});
+document.getElementById("previewBox").addEventListener("click", () => {
+  document.getElementById("previewBox").style.display = "none";
 });
