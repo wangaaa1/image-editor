@@ -66,16 +66,33 @@ function loadImage(file) {
 
 function drawCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 先画背景图（永远底层）
   if (backgroundImage) {
     ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
   }
+
+  // 初次加载文字图像时，初始化 overlayData
   if (overlayImage && !overlayData) {
     ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
     overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  } else if (overlayData) {
-    ctx.putImageData(overlayData, 0, 0);
+  }
+
+  // 如果已有 overlayData，则画在背景图上（支持透明）
+  if (overlayData) {
+    // 创建一个临时 canvas 来绘制 overlayData
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext("2d");
+
+    tempCtx.putImageData(overlayData, 0, 0);
+
+    // 把这个透明图层叠加到主画布（背景之上）
+    ctx.drawImage(tempCanvas, 0, 0);
   }
 }
+
 
 function eraseSimilarColor(targetRGB) {
   const data = overlayData.data;
