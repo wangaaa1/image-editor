@@ -146,7 +146,24 @@ function drawCanvas() {
     ctx.lineWidth = 2;
     ctx.strokeRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
 
-    // 缩放锚点（右下角）
+    // 锚点尺寸
+    const handleSize = 10;
+    const handles = {
+      tl: [-canvas.width / 2, -canvas.height / 2],
+      tr: [canvas.width / 2, -canvas.height / 2],
+      br: [canvas.width / 2, canvas.height / 2],
+      bl: [-canvas.width / 2, canvas.height / 2],
+    };
+
+    for (const [key, [hx, hy]] of Object.entries(handles)) {
+      ctx.beginPath();
+      ctx.fillStyle = "blue";
+      ctx.arc(hx, hy, handleSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
     ctx.beginPath();
     ctx.fillStyle = "blue";
     ctx.arc(canvas.width / 2, canvas.height / 2, 8, 0, Math.PI * 2);
