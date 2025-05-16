@@ -165,9 +165,14 @@ function saveHistory() {
 const downloadButton = document.getElementById("downloadButton");
 
 downloadButton.addEventListener("click", () => {
-  const dataURL = canvas.toDataURL("image/png");
-  const link = document.createElement("a");
-  link.href = dataURL;
-  link.download = "合成图.png";
-  link.click();
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "合成图.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url); // 清理
+  }, "image/png");
 });
