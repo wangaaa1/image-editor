@@ -2,33 +2,36 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>图层编辑器</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
+    <!-- 上传区域 -->
     <div class="sidebar">
       <div class="upload-box">
-        <label>上传背景图</label>
+        <label>上传背景图</label><br />
         <input type="file" id="backgroundInput" accept="image/*" />
         <img id="backgroundThumb" />
       </div>
       <div class="upload-box">
-        <label>上传文字图</label>
+        <label>上传文字图</label><br />
         <input type="file" id="overlayInput" accept="image/*" />
         <img id="overlayThumb" />
       </div>
+    </div>
+
+    <!-- 编辑器区域 -->
+    <div class="editor">
+      <canvas id="canvas" width="800" height="600"></canvas>
       <div class="buttons">
         <button id="eraseButton">颜色擦除</button>
-        <button id="transformButton">编辑图层</button>
         <button id="undoButton">返回上一步</button>
       </div>
     </div>
-    <div class="editor">
-      <canvas id="canvas"></canvas>
-    </div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
