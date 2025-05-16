@@ -161,3 +161,13 @@ function saveHistory() {
     historyStack.push(copy);
   }
 }
+// 下载按钮功能：导出合成图像为 PNG
+const downloadButton = document.getElementById("downloadButton");
+
+downloadButton.addEventListener("click", () => {
+  const dataURL = canvas.toDataURL("image/png");
+  const link = document.createElement("a");
+  link.href = dataURL;
+  link.download = "合成图.png";
+  link.click();
+});
