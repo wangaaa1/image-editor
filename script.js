@@ -40,7 +40,18 @@ canvas.addEventListener("click", (e) => {
   const pixelIndex = (y * canvas.width + x) * 4;
   const targetColor = overlayData.data.slice(pixelIndex, pixelIndex + 3);
 
-  eraseSimilarColor(targetColor);
+canvas.addEventListener("click", (e) => {
+  if (!isErasing || !overlayData) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+
+  const index = (y * canvas.width + x) * 4;
+  const targetColor = overlayData.data.slice(index, index + 3);
+
+  saveHistory();
+  eraseSimilarColor(targetColor, x, y);
   drawCanvas();
 });
 
@@ -94,22 +105,46 @@ function drawCanvas() {
 }
 
 
-function eraseSimilarColor(targetRGB) {
+function eraseSimilarColor(targetRGB, startX, startY) {
+  const width = canvas.width;
+  const height = canvas.height;
   const data = overlayData.data;
   const tolerance = 20;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
 
+  const visited = new Set();
+  const stack = [[startX, startY]];
+
+  function getIndex(x, y) {
+    return (y * width + x) * 4;
+  }
+
+  function colorMatch(index) {
+    const r = data[index];
+    const g = data[index + 1];
+    const b = data[index + 2];
     const diff = Math.sqrt(
       (r - targetRGB[0]) ** 2 +
       (g - targetRGB[1]) ** 2 +
       (b - targetRGB[2]) ** 2
     );
+    return diff <= tolerance;
+  }
 
-    if (diff <= tolerance) {
-      data[i + 3] = 0; // 设置 alpha = 0，透明
+  while (stack.length > 0) {
+    const [x, y] = stack.pop();
+    const key = `${x},${y}`;
+    if (visited.has(key) || x < 0 || y < 0 || x >= width || y >= height) continue;
+
+    const idx = getIndex(x, y);
+    if (colorMatch(idx)) {
+      data[idx + 3] = 0; // 设置为透明 alpha=0
+      visited.add(key);
+
+      // 推入相邻像素
+      stack.push([x + 1, y]);
+      stack.push([x - 1, y]);
+      stack.push([x, y + 1]);
+      stack.push([x, y - 1]);
     }
   }
 }
