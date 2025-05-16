@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>图层编辑器</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="upload-box">
+        <label>上传背景图</label>
+        <input type="file" id="backgroundInput" accept="image/*" />
+        <img id="backgroundThumb" />
+      </div>
+      <div class="upload-box">
+        <label>上传文字图</label>
+        <input type="file" id="overlayInput" accept="image/*" />
+        <img id="overlayThumb" />
+      </div>
+    </div>
+    <div class="editor">
+      <canvas id="canvas" width="800" height="600"></canvas>
+      <div class="buttons">
+        <button id="eraseButton">颜色擦除</button>
+        <button id="undoButton">返回上一步</button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
