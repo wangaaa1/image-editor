@@ -8,6 +8,10 @@ let historyStack = [];
 let isErasing = false;
 let isTransforming = false;
 
+
+let currentHandle = null;
+const handleSize = 10;
+
 let overlayTransform = {
   x: 0,
   y: 0,
@@ -66,7 +70,45 @@ undoButton.addEventListener("click", () => {
   }
 });
 
+
 canvas.addEventListener("mousedown", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  if (isTransforming) {
+    // 计算中心位置和旋转后的坐标
+    const centerX = canvas.width / 2 + overlayTransform.x;
+    const centerY = canvas.height / 2 + overlayTransform.y;
+
+    // 反向变换鼠标位置回旋转前的坐标系
+    const dx = mouseX - centerX;
+    const dy = mouseY - centerY;
+    const angle = -overlayTransform.rotation;
+    const rx = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const ry = dx * Math.sin(angle) + dy * Math.cos(angle);
+
+    const handles = {
+      tl: [-canvas.width / 2, -canvas.height / 2],
+      tr: [canvas.width / 2, -canvas.height / 2],
+      br: [canvas.width / 2, canvas.height / 2],
+      bl: [-canvas.width / 2, canvas.height / 2],
+    };
+
+    for (const [key, [hx, hy]] of Object.entries(handles)) {
+      if (Math.abs(rx - hx * overlayTransform.scale) < handleSize &&
+          Math.abs(ry - hy * overlayTransform.scale) < handleSize) {
+        currentHandle = key;
+        return;
+      }
+    }
+
+    overlayTransform.dragging = true;
+    overlayTransform.offsetX = e.clientX - overlayTransform.x;
+    overlayTransform.offsetY = e.clientY - overlayTransform.y;
+  }
+});
+
   if (!isTransforming) return;
   const rect = canvas.getBoundingClientRect();
   overlayTransform.dragging = true;
@@ -74,14 +116,52 @@ canvas.addEventListener("mousedown", (e) => {
   overlayTransform.offsetY = e.clientY - overlayTransform.y;
 });
 
+
 canvas.addEventListener("mousemove", (e) => {
+  if (!isTransforming) return;
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  if (currentHandle) {
+    const centerX = canvas.width / 2 + overlayTransform.x;
+    const centerY = canvas.height / 2 + overlayTransform.y;
+    const dx = mouseX - centerX;
+    const dy = mouseY - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // 缩放逻辑
+    overlayTransform.scale = dist / (Math.sqrt(2) * canvas.width / 2);
+    overlayTransform.scale = Math.max(0.1, overlayTransform.scale);
+
+    // 如果按住 Ctrl，旋转而非缩放
+    if (e.ctrlKey) {
+      overlayTransform.rotation = Math.atan2(dy, dx);
+    }
+
+    drawCanvas();
+    return;
+  }
+
+  if (overlayTransform.dragging) {
+    overlayTransform.x = e.clientX - overlayTransform.offsetX;
+    overlayTransform.y = e.clientY - overlayTransform.offsetY;
+    drawCanvas();
+  }
+});
+
   if (!isTransforming || !overlayTransform.dragging) return;
   overlayTransform.x = e.clientX - overlayTransform.offsetX;
   overlayTransform.y = e.clientY - overlayTransform.offsetY;
   drawCanvas();
 });
 
+
 canvas.addEventListener("mouseup", () => {
+  overlayTransform.dragging = false;
+  currentHandle = null;
+});
+
   overlayTransform.dragging = false;
 });
 
