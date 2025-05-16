@@ -1,3 +1,17 @@
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ✅ 修复后的 script.js 文件（含桌面 & 手机兼容 + 编辑框缩放）
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -45,7 +59,6 @@ overlayInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const img = await loadImage(file);
   overlayImage = img;
-  overlayData = null;
   document.getElementById("overlayThumb").src = img.src;
   drawCanvas();
 });
@@ -133,13 +146,9 @@ function drawCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (backgroundImage) ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
 
-  if (overlayImage) {
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext("2d");
-    tempCtx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
-    overlayData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+  if (overlayImage && !overlayData) {
+    ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+    overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 
   if (overlayData) {
