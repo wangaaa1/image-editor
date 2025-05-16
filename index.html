@@ -28,6 +28,26 @@
       <div class="buttons">
         <button id="eraseButton">颜色擦除</button>
         <button id="undoButton">返回上一步</button>
+        <button id="downloadButton">下载图像</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 这个预览图层在 container 外，能全屏覆盖 -->
+  <div id="previewBox" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:#000000cc; z-index:9999; align-items:center; justify-content:center;">
+    <img id="previewImage" style="max-width:90%; max-height:90%; border-radius:12px;" />
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+
+    <!-- 编辑器区域 -->
+    <div class="editor">
+      <canvas id="canvas" width="800" height="600"></canvas>
+      <div class="buttons">
+        <button id="eraseButton">颜色擦除</button>
+        <button id="undoButton">返回上一步</button>
         <button id="downloadButton">下载图像</button> <!-- ✅ 新增按钮 -->
       </div>
     </div>
