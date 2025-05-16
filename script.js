@@ -12,6 +12,7 @@ const overlayInput = document.getElementById("overlayInput");
 const eraseButton = document.getElementById("eraseButton");
 const undoButton = document.getElementById("undoButton");
 
+// 上传背景图
 backgroundInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const img = await loadImage(file);
@@ -20,6 +21,7 @@ backgroundInput.addEventListener("change", async (e) => {
   drawCanvas();
 });
 
+// 上传文字图
 overlayInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const img = await loadImage(file);
@@ -28,18 +30,7 @@ overlayInput.addEventListener("change", async (e) => {
   drawCanvas();
 });
 
-canvas.addEventListener("click", (e) => {
-  if (!isErasing || !overlayData) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
-  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
-
-  saveHistory();
-
-  const pixelIndex = (y * canvas.width + x) * 4;
-  const targetColor = overlayData.data.slice(pixelIndex, pixelIndex + 3);
-
+// 点击画布进行颜色擦除（连通区域）
 canvas.addEventListener("click", (e) => {
   if (!isErasing || !overlayData) return;
 
@@ -55,11 +46,13 @@ canvas.addEventListener("click", (e) => {
   drawCanvas();
 });
 
+// 切换“颜色擦除”按钮状态
 eraseButton.addEventListener("click", () => {
   isErasing = !isErasing;
   eraseButton.style.background = isErasing ? "#0077aa" : "#00a2d4";
 });
 
+// 撤销上一步
 undoButton.addEventListener("click", () => {
   if (historyStack.length > 0) {
     overlayData = historyStack.pop();
@@ -67,6 +60,7 @@ undoButton.addEventListener("click", () => {
   }
 });
 
+// 加载图像
 function loadImage(file) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -75,36 +69,33 @@ function loadImage(file) {
   });
 }
 
+// 绘制画布：先画背景，再叠加透明的文字图层
 function drawCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 先画背景图（永远底层）
+  // 画背景图
   if (backgroundImage) {
     ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
   }
 
-  // 初次加载文字图像时，初始化 overlayData
+  // 初次上传文字图时初始化 overlayData
   if (overlayImage && !overlayData) {
     ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
     overlayData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 
-  // 如果已有 overlayData，则画在背景图上（支持透明）
+  // 如果有文字图数据，用透明图层叠加上去
   if (overlayData) {
-    // 创建一个临时 canvas 来绘制 overlayData
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const tempCtx = tempCanvas.getContext("2d");
-
     tempCtx.putImageData(overlayData, 0, 0);
-
-    // 把这个透明图层叠加到主画布（背景之上）
     ctx.drawImage(tempCanvas, 0, 0);
   }
 }
 
-
+// 用泛洪算法擦除点击位置连通区域
 function eraseSimilarColor(targetRGB, startX, startY) {
   const width = canvas.width;
   const height = canvas.height;
@@ -137,10 +128,10 @@ function eraseSimilarColor(targetRGB, startX, startY) {
 
     const idx = getIndex(x, y);
     if (colorMatch(idx)) {
-      data[idx + 3] = 0; // 设置为透明 alpha=0
+      data[idx + 3] = 0; // 设置 alpha = 0（透明）
       visited.add(key);
 
-      // 推入相邻像素
+      // 加入相邻像素
       stack.push([x + 1, y]);
       stack.push([x - 1, y]);
       stack.push([x, y + 1]);
@@ -149,6 +140,7 @@ function eraseSimilarColor(targetRGB, startX, startY) {
   }
 }
 
+// 存储历史记录（用于撤销）
 function saveHistory() {
   if (overlayData) {
     const copy = new ImageData(
