@@ -135,6 +135,30 @@ function drawCanvas() {
     ctx.restore();
 
     // Draw bounding box (可视化编辑框)
+    const boxWidth = canvas.width * overlayTransform.scale;
+    const boxHeight = canvas.height * overlayTransform.scale;
+    const centerX = canvas.width / 2 + overlayTransform.x;
+    const centerY = canvas.height / 2 + overlayTransform.y;
+
+    ctx.translate(centerX, centerY);
+    ctx.rotate(overlayTransform.rotation);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+
+    // 缩放锚点（右下角）
+    ctx.beginPath();
+    ctx.fillStyle = "blue";
+    ctx.arc(canvas.width / 2, canvas.height / 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 旋转锚点（右上角）
+    ctx.beginPath();
+    ctx.fillStyle = "green";
+    ctx.arc(canvas.width / 2, -canvas.height / 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
     ctx.save();
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
