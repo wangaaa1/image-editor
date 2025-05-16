@@ -59,7 +59,7 @@ canvas.addEventListener("click", (e) => {
 // 切换“颜色擦除”按钮状态
 eraseButton.addEventListener("click", () => {
   isErasing = !isErasing;
-  eraseButton.style.background = isErasing ? "#0077aa" : "#00a2d4";
+  eraseButton.classList.toggle("active", isErasing);
 });
 
 // 撤销上一步
